@@ -1,0 +1,1743 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Caps Tracker (USDA + Favorites + Helper Items + Diet Profiles)</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --card:#121a22;
+      --card2:#0f1c28;
+      --text:#eaf2fb;
+      --muted:#8aa0b6;
+      --line:#223243;
+
+      --ok:#9be28f;
+      --warn:#ffd27d;
+      --bad:#ff8f8f;
+
+      --btn:#14304a;
+      --btnLine:#1f466a;
+
+      /* visual accents */
+      --totalsBand:#102233;      /* bottom band */
+      --totalsBandLine:#2a4a68;
+      --rightPanel:#0e2233;
+      --rightPanelLine:#2d5b7d;
+    }
+
+    *{ box-sizing:border-box; }
+    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); }
+    .wrap{ max-width:1180px; margin:0 auto; padding:18px; }
+    h1{ margin:0; font-size:20px; letter-spacing:.2px; }
+    .grid{ display:grid; gap:12px; grid-template-columns:1.15fr .85fr; }
+    @media (max-width:980px){ .grid{ grid-template-columns:1fr; } }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px;
+    }
+
+    .accentRaised{
+      background:var(--rightPanel);
+      border:1px solid var(--rightPanelLine);
+      box-shadow: 0 10px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+    }
+
+    .accentSunken{
+      background:var(--totalsBand);
+      border:1px solid var(--totalsBandLine);
+      box-shadow: inset 0 10px 24px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
+    }
+
+    .topbar{
+      display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;
+      margin-bottom:12px;
+    }
+    .topRight{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; justify-content:flex-end;
+    }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
+    label{ display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+    input, select, button, textarea{
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:#0e151d;
+      color:var(--text);
+      padding:10px 10px;
+      font-size:14px;
+    }
+    textarea{ width:100%; min-height:120px; resize:vertical; }
+    input::placeholder, textarea::placeholder{ color:#6f859a; }
+    input[type="number"]{ width:140px; }
+    select{ min-width:220px; }
+    button{ cursor:pointer; }
+    button.primary{ background:var(--btn); border-color:var(--btnLine); }
+    button.danger{ background:#3a1515; border-color:#6a1f1f; }
+    button.ghost{ background:transparent; }
+    button.small{ padding:7px 10px; font-size:13px; }
+    button:disabled{ opacity:.55; cursor:not-allowed; }
+
+    .pill{
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:#0e151d;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .pill b{ color:var(--text); }
+    .tiny{ font-size:12px; color:var(--muted); }
+    .muted{ color:var(--muted); font-size:13px; }
+
+    .divider{ height:1px; background:var(--line); margin:12px 0; }
+
+    .twoCol{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media (max-width:980px){ .twoCol{ grid-template-columns:1fr; } }
+
+    .sectionTitle{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin:0 0 10px; }
+    .sectionTitle h2{ margin:0; font-size:16px; }
+
+    .results, .list{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      max-height:320px;
+      overflow:auto;
+      padding-right:4px;
+    }
+
+    .result{
+      padding:10px;
+      border:1px solid var(--line);
+      background:#0b0f14;
+      border-radius:12px;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .result .name{ font-weight:650; }
+    .result .sub{ font-size:12px; color:var(--muted); margin-top:2px; }
+    .result .right{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+    .badge{ font-size:12px; padding:4px 8px; border:1px solid var(--line); border-radius:999px; color:var(--muted); background:#0e151d; }
+
+    .warnbox{ padding:10px; border:1px solid var(--line); border-radius:12px; background:#0e151d; }
+    .warnbox b{ color:var(--text); }
+
+    .stats{ display:grid; gap:10px; grid-template-columns:repeat(3, 1fr); }
+    @media (max-width:980px){ .stats{ grid-template-columns:1fr; } }
+    .stat{ padding:12px; border-radius:12px; border:1px solid var(--line); background:#0e151d; }
+    .stat .k{ font-size:12px; color:var(--muted); }
+    .stat .v{ font-size:20px; margin-top:6px; display:flex; align-items:baseline; gap:8px; }
+    .bar{ height:10px; border-radius:999px; background:#0b0f14; border:1px solid var(--line); overflow:hidden; margin-top:10px; }
+    .fill{ height:100%; width:0%; background:#2e6ea5; }
+
+    .slot{ border-top:1px solid var(--line); padding-top:10px; margin-top:10px; }
+    .slot:first-child{ border-top:0; padding-top:0; margin-top:0; }
+    .slotHead{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+    .slotName{ font-weight:650; }
+    .entries{ margin-top:10px; display:flex; flex-direction:column; gap:8px; }
+    .entry{
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      padding:10px; border:1px solid var(--line); background:#0b0f14; border-radius:12px;
+    }
+    .entry .left{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+    .entry .food{ font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:520px; }
+    .entry .meta{ font-size:12px; color:var(--muted); }
+    .entry .right{ display:flex; align-items:center; gap:10px; }
+    .ok{ color:var(--ok); }
+    .warn{ color:var(--warn); }
+    .bad{ color:var(--bad); }
+
+    .bottomTotals{ margin-top:14px; }
+
+    /* Modal */
+    .modalOverlay{
+      position:fixed; inset:0;
+      background:rgba(0,0,0,.6);
+      display:none;
+      align-items:center; justify-content:center;
+      padding:18px;
+      z-index:9999;
+    }
+    .modal{
+      width:min(760px, 100%);
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px;
+      box-shadow:0 18px 40px rgba(0,0,0,.5);
+    }
+    .modalActions{ display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; margin-top:10px; }
+    .modal .hintLine{
+      display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+      margin-top:8px;
+    }
+
+    .inlineError{
+      margin-top:8px;
+      color:var(--bad);
+      font-size:12px;
+      white-space:pre-wrap;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>Caps Tracker (USDA lookup + servings/grams + favorites + helper items + diet profiles)</h1>
+        <div class="tiny" id="topHint">Local-first. Works great on GitHub Pages.</div>
+      </div>
+
+      <div class="topRight">
+        <div>
+          <label for="dateInputTop">Date</label>
+          <input id="dateInputTop" type="date" />
+        </div>
+
+        <div>
+          <label for="dietSelect">Diet profile</label>
+          <select id="dietSelect">
+            <option value="standard">Standard</option>
+            <option value="diabetes" selected>Diabetes</option>
+            <option value="hypertension">Hypertension (lower sodium)</option>
+            <option value="heart">Heart-friendly (lower sodium)</option>
+            <option value="kidney">Kidney-safe (lower sodium, tighter carbs)</option>
+            <option value="weightloss">Weight loss (tighter carbs + cal target)</option>
+            <option value="custom">Custom (no auto changes)</option>
+          </select>
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+          <span class="pill">Meal cap: <b id="mealCapText">50g</b> × <span id="mealsPerDayText">3</span></span>
+          <span class="pill">Snack cap: <b id="snackCapText">15g</b> × <span id="snacksPerDayText">2</span></span>
+          <span class="pill">Daily carb cap: <b id="dailyCarbCapText">180g</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- LEFT -->
+      <div class="card">
+        <div class="sectionTitle">
+          <h2>Lookup (USDA)</h2>
+          <span class="tiny">Search → Use → Pick servings/grams → Add</span>
+        </div>
+
+        <div class="warnbox tiny" style="margin-bottom:10px;">
+          This is safe to host on GitHub Pages. Your USDA API key (and optional helper key) are stored only in your browser (localStorage).
+          Don’t commit real keys into the file.
+        </div>
+
+        <div class="row">
+          <div style="flex:1; min-width:260px;">
+            <label for="apiKeyInput">USDA API key</label>
+            <input id="apiKeyInput" type="password" placeholder="Paste your FoodData Central API key" />
+          </div>
+          <div><button id="saveKeyBtn" class="primary" style="height:40px;">Save key</button></div>
+          <div><button id="clearKeyBtn" class="danger" style="height:40px;">Clear key</button></div>
+        </div>
+
+        <div class="row" style="margin-top:10px;">
+          <div style="flex:1; min-width:260px;">
+            <label for="lookupInput">Search food</label>
+            <input id="lookupInput" type="text" placeholder="e.g., gyro sandwich, burrito, wings, yogurt" />
+          </div>
+          <div>
+            <label for="dataTypeSelect">Data types</label>
+            <select id="dataTypeSelect">
+              <option value="Survey (FNDDS),Foundation,SR Legacy,Branded" selected>All (best coverage)</option>
+              <option value="Survey (FNDDS)">Survey (FNDDS) (generic foods)</option>
+              <option value="Foundation,SR Legacy">Foundation + SR Legacy</option>
+              <option value="Branded">Branded</option>
+            </select>
+          </div>
+          <div>
+            <button id="lookupBtn" class="primary" style="height:40px;">Search</button>
+          </div>
+        </div>
+
+        <div id="lookupStatus" class="tiny" style="margin-top:10px;"></div>
+        <div id="jsError" class="inlineError" style="display:none;"></div>
+
+        <div class="twoCol" style="margin-top:10px;">
+          <div>
+            <div class="sectionTitle" style="margin-bottom:6px;">
+              <h2 style="font-size:14px;">Results</h2>
+              <span class="tiny">Use loads nutrients</span>
+            </div>
+            <div id="lookupResults" class="results"></div>
+          </div>
+
+          <div>
+            <div class="sectionTitle" style="margin-bottom:6px;">
+              <h2 style="font-size:14px;">Favorites</h2>
+              <button id="clearFavBtn" class="danger small" title="Remove all favorites">Clear</button>
+            </div>
+            <div id="favoritesList" class="list"></div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="sectionTitle">
+          <h2>Helper items (manual per-serving)</h2>
+          <span class="tiny">For USDA gaps (like “burrito = 25g carbs”)</span>
+        </div>
+
+        <div class="row">
+          <div style="flex:1; min-width:240px;">
+            <label for="helperName">Name</label>
+            <input id="helperName" type="text" placeholder="e.g., Burrito (medium)" />
+          </div>
+          <div>
+            <label for="helperCarbs">Carbs/serv (g)</label>
+            <input id="helperCarbs" type="number" min="0" step="0.1" placeholder="25" />
+          </div>
+          <div>
+            <label for="helperCals">Calories/serv</label>
+            <input id="helperCals" type="number" min="0" step="1" placeholder="Optional" />
+          </div>
+          <div>
+            <label for="helperSod">Sodium/serv (mg)</label>
+            <input id="helperSod" type="number" min="0" step="1" placeholder="Optional" />
+          </div>
+          <div>
+            <button id="addHelperBtn" class="primary" style="height:40px;">Add helper</button>
+          </div>
+        </div>
+
+        <div class="twoCol" style="margin-top:10px;">
+          <div class="warnbox tiny">
+            Tip: if USDA gives nonsense servings, use helpers or paste the label. Helpers save as favorites too.
+          </div>
+          <div>
+            <div id="helpersList" class="list"></div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="sectionTitle">
+          <h2>Selected item</h2>
+          <span class="tiny" id="selectedHint">Nothing selected</span>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="qtyValue">Amount</label>
+            <input id="qtyValue" type="number" min="0" step="0.1" value="1" />
+          </div>
+          <div>
+            <label for="qtyUnit">Use</label>
+            <select id="qtyUnit">
+              <option value="serving">serving(s)</option>
+              <option value="grams">grams</option>
+            </select>
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <button id="favSelectedBtn" class="ghost" style="height:40px;">Add to favorites</button>
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <button id="labelParseBtn" class="ghost" style="height:40px;">Paste nutrition label</button>
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <button id="noDataHelpBtn" class="ghost" style="height:40px; display:none;">No data? Use helper</button>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:8px;">
+          <span class="badge" id="liveCarbsBadge">Carbs: —</span>
+          <span class="badge" id="liveCalsBadge">Calories: —</span>
+          <span class="badge" id="liveSodiumBadge">Sodium: —</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="sectionTitle">
+          <h2>Log food</h2>
+          <div class="row" style="align-items:center;">
+            <button id="clearDayBtn" class="danger" title="Clears this date only">Clear day</button>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="slotSelect">Meal/snack slot</label>
+            <select id="slotSelect"></select>
+          </div>
+
+          <div style="flex:1; min-width:240px;">
+            <label for="foodInput">Food (Enter = quick USDA lookup)</label>
+            <input id="foodInput" type="text" placeholder="Type food name (or pick from results)" />
+          </div>
+
+          <div>
+            <label for="carbInput">Carbs (g)</label>
+            <input id="carbInput" type="number" min="0" step="0.1" placeholder="Auto-filled" />
+          </div>
+
+          <div>
+            <label for="calInput">Calories (kcal)</label>
+            <input id="calInput" type="number" min="0" step="1" placeholder="Auto-filled" />
+          </div>
+
+          <div>
+            <label for="sodInput">Sodium (mg)</label>
+            <input id="sodInput" type="number" min="0" step="1" placeholder="Auto-filled" />
+          </div>
+
+          <div>
+            <button id="addBtn" class="primary" style="height:40px;">Add</button>
+          </div>
+        </div>
+
+        <div class="tiny" style="margin-top:10px;">
+          If USDA has missing nutrients, use “Paste nutrition label” or a Helper item.
+        </div>
+
+        <div class="divider"></div>
+
+        <div id="slotsContainer"></div>
+
+        <!-- Bottom-left totals (different color + sunken) -->
+        <div class="card accentSunken bottomTotals">
+          <div class="sectionTitle" style="margin-bottom:6px;">
+            <h2>Daily totals</h2>
+            <span class="tiny">This date</span>
+          </div>
+          <div class="row">
+            <span class="badge"><b id="blCarbs">0</b> g carbs</span>
+            <span class="badge"><b id="blCals">0</b> kcal</span>
+            <span class="badge"><b id="blSod">0</b> mg Na</span>
+          </div>
+          <div class="tiny" id="blCapsLine" style="margin-top:8px;"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="card accentRaised">
+        <div class="sectionTitle">
+          <h2>Today’s totals</h2>
+          <span id="statusPill" class="pill">On track</span>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="k">Carbs</div>
+            <div class="v"><span id="dailyCarbs">0</span><span class="muted">g</span></div>
+            <div class="bar"><div id="carbBar" class="fill"></div></div>
+            <div class="tiny" id="carbRemain">Remaining: —</div>
+          </div>
+          <div class="stat">
+            <div class="k">Calories</div>
+            <div class="v"><span id="dailyCals">0</span><span class="muted">kcal</span></div>
+            <div class="bar"><div id="calBar" class="fill"></div></div>
+            <div class="tiny" id="calTargetLine">Target: —</div>
+          </div>
+          <div class="stat">
+            <div class="k">Sodium</div>
+            <div class="v"><span id="dailySod">0</span><span class="muted">mg</span></div>
+            <div class="bar"><div id="sodBar" class="fill"></div></div>
+            <div class="tiny" id="sodTargetLine">Target: —</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="sectionTitle">
+          <h2>Caps & targets</h2>
+          <span class="tiny">Diet applies these; you can override</span>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="mealCap">Meal cap (g)</label>
+            <input id="mealCap" type="number" min="0" step="1" value="50" />
+          </div>
+          <div>
+            <label for="snackCap">Snack cap (g)</label>
+            <input id="snackCap" type="number" min="0" step="1" value="15" />
+          </div>
+          <div>
+            <label for="mealsPerDay">Meals/day</label>
+            <input id="mealsPerDay" type="number" min="0" step="1" value="3" />
+          </div>
+          <div>
+            <label for="snacksPerDay">Snacks/day</label>
+            <input id="snacksPerDay" type="number" min="0" step="1" value="2" />
+          </div>
+          <div>
+            <label for="sodiumTarget">Sodium target (mg)</label>
+            <input id="sodiumTarget" type="number" min="0" step="50" value="2000" />
+          </div>
+          <div>
+            <label for="calTarget">Cal target (kcal)</label>
+            <input id="calTarget" type="number" min="0" step="50" value="0" />
+          </div>
+          <div>
+            <button id="saveCapsBtn" class="primary" style="height:40px;">Save</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="warnbox tiny">
+          USDA tip: For generic foods (“gyro sandwich”), try <b>Survey (FNDDS)</b>. For packaged foods, try <b>Branded</b>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Label / Helper modal -->
+  <div id="modalOverlay" class="modalOverlay">
+    <div class="modal">
+      <div class="sectionTitle">
+        <h2 id="modalTitle">Paste nutrition label text</h2>
+        <span class="tiny" id="modalSubtitle">We’ll extract carbs, calories, sodium</span>
+      </div>
+
+      <textarea id="labelText" placeholder="Example: Calories 320  Total Carbohydrate 26g  Sodium 870mg"></textarea>
+
+      <div class="hintLine tiny">
+        <span id="labelParseStatus"></span>
+        <span id="modalRightHint"></span>
+      </div>
+
+      <div class="modalActions">
+        <button id="cancelModalBtn" class="ghost">Cancel</button>
+        <button id="applyModalBtn" class="primary">Apply</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // If *anything* blows up, show it on screen so “Use does nothing” never happens silently again.
+  window.addEventListener("error", (e) => {
+    const box = document.getElementById("jsError");
+    if (!box) return;
+    box.style.display = "block";
+    box.textContent = "JavaScript error:\\n" + (e.message || "Unknown") + (e.filename ? ("\\n" + e.filename) : "") + (e.lineno ? (":" + e.lineno) : "");
+  });
+
+  const API_BASE = "https://api.nal.usda.gov/fdc/v1";
+  const MIN_API_INTERVAL_MS = 1200;
+  const DEBOUNCE_MS = 450;
+
+  const el = (id) => document.getElementById(id);
+
+  const keys = {
+    apiKey: "capsTracker:usdaApiKey:v4",
+    caps:   "capsTracker:caps:v4",
+    diet:   "capsTracker:diet:v4",
+    favorites: "capsTracker:favorites:v4",
+    helpers: "capsTracker:helpers:v4",
+    searchCache: "capsTracker:searchCache:v4",
+    detailsCache:"capsTracker:detailsCache:v4",
+    day: (iso) => `capsTracker:day:v4:${iso}`
+  };
+
+  const DEFAULTS = {
+    diet: "diabetes",
+    caps: { mealCap: 50, snackCap: 15, mealsPerDay: 3, snacksPerDay: 2, sodiumTarget: 2000, calTarget: 0 }
+  };
+
+  // These are just presets for the tracker UI (not medical advice). You can override anytime.
+  const DIET_PRESETS = {
+    standard:   { mealCap: 50, snackCap: 15, mealsPerDay: 3, snacksPerDay: 2, sodiumTarget: 2000, calTarget: 0 },
+    diabetes:   { mealCap: 35, snackCap: 10, mealsPerDay: 3, snacksPerDay: 2, sodiumTarget: 2000, calTarget: 0 },
+    hypertension:{ mealCap: 45, snackCap: 15, mealsPerDay: 3, snacksPerDay: 2, sodiumTarget: 1500, calTarget: 0 },
+    heart:      { mealCap: 40, snackCap: 15, mealsPerDay: 3, snacksPerDay: 2, sodiumTarget: 1500, calTarget: 0 },
+    kidney:     { mealCap: 40, snackCap: 10, mealsPerDay: 3, snacksPerDay: 2, sodiumTarget: 1500, calTarget: 0 },
+    weightloss: { mealCap: 30, snackCap: 10, mealsPerDay: 3, snacksPerDay: 2, sodiumTarget: 2000, calTarget: 1600 },
+    custom:     null
+  };
+
+  const SLOT_DEFS = [
+    { key:"Breakfast", type:"meal" },
+    { key:"Lunch",     type:"meal" },
+    { key:"Dinner",    type:"meal" },
+    { key:"Snack 1",   type:"snack" },
+    { key:"Snack 2",   type:"snack" }
+  ];
+
+  const delay = (ms) => new Promise(r => setTimeout(r, ms));
+  const round1 = (n) => Math.round((Number(n)||0)*10)/10;
+  const safeNumber = (x) => {
+    const n = Number(x);
+    return Number.isFinite(n) ? n : null;
+  };
+  const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
+  const escapeHtml = (str) =>
+    String(str)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+
+  function loadJson(k){
+    try{ return JSON.parse(localStorage.getItem(k) || "null"); }catch{ return null; }
+  }
+  function saveJson(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
+
+  function getApiKey(){ return localStorage.getItem(keys.apiKey) || ""; }
+  function setApiKey(v){ localStorage.setItem(keys.apiKey, v); }
+  function clearApiKey(){ localStorage.removeItem(keys.apiKey); }
+
+  function todayISO(){
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    const dd = String(d.getDate()).padStart(2,"0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function loadDiet(){ return localStorage.getItem(keys.diet) || DEFAULTS.diet; }
+  function saveDiet(v){ localStorage.setItem(keys.diet, v); }
+
+  function loadCaps(){
+    const raw = loadJson(keys.caps);
+    if (!raw) return { ...DEFAULTS.caps };
+    return {
+      mealCap: Number(raw.mealCap ?? DEFAULTS.caps.mealCap),
+      snackCap: Number(raw.snackCap ?? DEFAULTS.caps.snackCap),
+      mealsPerDay: Number(raw.mealsPerDay ?? DEFAULTS.caps.mealsPerDay),
+      snacksPerDay: Number(raw.snacksPerDay ?? DEFAULTS.caps.snacksPerDay),
+      sodiumTarget: Number(raw.sodiumTarget ?? DEFAULTS.caps.sodiumTarget),
+      calTarget: Number(raw.calTarget ?? DEFAULTS.caps.calTarget)
+    };
+  }
+  function saveCaps(v){ saveJson(keys.caps, v); }
+
+  function loadDay(iso){
+    const raw = loadJson(keys.day(iso));
+    if (!raw || !Array.isArray(raw.entries)) return { entries: [] };
+    return raw;
+  }
+  function saveDay(iso, day){ saveJson(keys.day(iso), day); }
+
+  function loadFavorites(){
+    const favs = loadJson(keys.favorites);
+    return Array.isArray(favs) ? favs : [];
+  }
+  function saveFavorites(favs){ saveJson(keys.favorites, favs); }
+
+  function loadHelpers(){
+    const hs = loadJson(keys.helpers);
+    return Array.isArray(hs) ? hs : [];
+  }
+  function saveHelpers(hs){ saveJson(keys.helpers, hs); }
+
+  // 24h cache
+  function cacheGet(cacheKey, k){
+    const c = loadJson(cacheKey) || {};
+    const hit = c[k];
+    if (!hit) return null;
+    if ((Date.now() - hit.ts) > 1000*60*60*24) return null;
+    return hit.data;
+  }
+  function cacheSet(cacheKey, k, data){
+    const c = loadJson(cacheKey) || {};
+    c[k] = { ts: Date.now(), data };
+    saveJson(cacheKey, c);
+  }
+
+  // Rate limit queue
+  let lastRequestAt = 0;
+  let chain = Promise.resolve();
+  function enqueue(task){
+    const p = chain.then(async() => {
+      const now = Date.now();
+      const wait = Math.max(0, MIN_API_INTERVAL_MS - (now - lastRequestAt));
+      if (wait) await delay(wait);
+      lastRequestAt = Date.now();
+      return task();
+    });
+    chain = p.catch(()=>{});
+    return p;
+  }
+
+  // USDA parsing helpers
+  function pickNutrient(foodNutrients, nutrientIds = [], nameHints = []) {
+    if (!Array.isArray(foodNutrients)) return null;
+
+    const rows = foodNutrients.map(fn => {
+      const n = fn.nutrient || {};
+      const id = n.id ?? fn.nutrientId ?? null;
+      const name = String(n.name ?? fn.nutrientName ?? "").toLowerCase();
+      const unit = String(n.unitName ?? fn.unitName ?? "").toUpperCase();
+      const amt = safeNumber(fn.amount ?? fn.value);
+      return { id, name, unit, amt };
+    }).filter(r => r.amt != null);
+
+    for (const id of nutrientIds) {
+      const hit = rows.find(r => String(r.id) === String(id));
+      if (hit) return { amt: hit.amt, unit: hit.unit };
+    }
+
+    for (const hint of nameHints) {
+      const h = String(hint).toLowerCase();
+      const hit = rows.find(r => r.name.includes(h));
+      if (hit) return { amt: hit.amt, unit: hit.unit };
+    }
+
+    return null;
+  }
+
+  function parseServingSizeG(servingSize, servingUnit){
+    const n = safeNumber(servingSize);
+    if (!n || n <= 0) return null;
+    const u = String(servingUnit||"").trim().toLowerCase();
+    if (u === "g" || u === "gram" || u === "grams") return n;
+    return null;
+  }
+
+  // Try to infer grams-per-serving from foodPortions when servingSizeG isn't provided as grams.
+  function bestPortion(details){
+    const portions = Array.isArray(details?.foodPortions) ? details.foodPortions : [];
+    const candidates = portions.map(p => {
+      const amt = safeNumber(p?.amount);
+      const gw = safeNumber(p?.gramWeight);
+      const desc = String(p?.portionDescription ?? p?.modifier ?? "").trim();
+      if (!amt || !gw || amt <= 0 || gw <= 0) return null;
+      const gramsPerUnit = gw / amt;
+      return { gramsPerUnit, label: desc || "serving" };
+    }).filter(Boolean);
+
+    // prefer “1 burrito / 1 sandwich / 1 piece” over oz-based
+    const prefer = candidates.find(c => !c.label.toLowerCase().includes("oz"));
+    return prefer || candidates[0] || null;
+  }
+
+  function normalizeSelected(searchItem, details){
+    const servingSize = details.servingSize ?? searchItem.servingSize ?? null;
+    const servingUnit = details.servingSizeUnit ?? searchItem.servingSizeUnit ?? null;
+    let servingSizeG = parseServingSizeG(servingSize, servingUnit);
+    let servingLabel = "serving";
+
+    if (!servingSizeG){
+      const p = bestPortion(details);
+      if (p){
+        servingSizeG = p.gramsPerUnit;
+        servingLabel = p.label || "serving";
+      }
+    }
+
+    // per-100g nutrients (common)
+    const carbs100 = pickNutrient(details.foodNutrients, [1005], ["carbohydrate"]);
+    const cal100   = pickNutrient(details.foodNutrients, [1008], ["energy"]);
+    const sod100   = pickNutrient(details.foodNutrients, [1093], ["sodium"]);
+
+    const per100g = {
+      carbs_g: (carbs100 && carbs100.unit==="G") ? carbs100.amt : null,
+      calories_kcal: (cal100 && cal100.unit==="KCAL") ? cal100.amt : null,
+      sodium_mg: (sod100 && sod100.unit==="MG") ? sod100.amt : null
+    };
+
+    // label nutrients (branded per serving)
+    const ln = details.labelNutrients || {};
+    const carbsServ = safeNumber(ln.carbohydrates?.value ?? ln.carbohydrate?.value);
+    const calServ   = safeNumber(ln.calories?.value);
+    const sodServ   = safeNumber(ln.sodium?.value);
+
+    let perServing = {
+      carbs_g: carbsServ,
+      calories_kcal: calServ,
+      sodium_mg: sodServ
+    };
+
+    // derive perServing from per100g + serving grams if needed
+    if (Number.isFinite(servingSizeG)) {
+      if (perServing.carbs_g == null && per100g.carbs_g != null) perServing.carbs_g = (per100g.carbs_g * servingSizeG)/100;
+      if (perServing.calories_kcal == null && per100g.calories_kcal != null) perServing.calories_kcal = (per100g.calories_kcal * servingSizeG)/100;
+      if (perServing.sodium_mg == null && per100g.sodium_mg != null) perServing.sodium_mg = (per100g.sodium_mg * servingSizeG)/100;
+    }
+
+    return {
+      fdcId: searchItem.fdcId,
+      description: details.description || searchItem.description,
+      dataType: details.dataType || searchItem.dataType || "",
+      brandOwner: details.brandOwner || searchItem.brandOwner || "",
+      servingSize,
+      servingUnit,
+      servingSizeG,
+      servingLabel,
+      per100g,
+      perServing
+    };
+  }
+
+  function computeForQty(sel, qty, unit){
+    const q = safeNumber(qty);
+    if (!sel || q == null || q < 0) return null;
+
+    if (unit === "grams"){
+      const g = q;
+      return {
+        carbs_g: (sel.per100g?.carbs_g != null) ? (sel.per100g.carbs_g * g)/100 : null,
+        calories_kcal: (sel.per100g?.calories_kcal != null) ? (sel.per100g.calories_kcal * g)/100 : null,
+        sodium_mg: (sel.per100g?.sodium_mg != null) ? (sel.per100g.sodium_mg * g)/100 : null
+      };
+    }
+
+    // servings
+    const out = {
+      carbs_g: (sel.perServing?.carbs_g != null) ? sel.perServing.carbs_g * q : null,
+      calories_kcal: (sel.perServing?.calories_kcal != null) ? sel.perServing.calories_kcal * q : null,
+      sodium_mg: (sel.perServing?.sodium_mg != null) ? sel.perServing.sodium_mg * q : null
+    };
+
+    // fallback from per100g + servingSizeG
+    if (sel.servingSizeG != null){
+      const grams = sel.servingSizeG * q;
+      if (out.carbs_g == null && sel.per100g?.carbs_g != null) out.carbs_g = (sel.per100g.carbs_g * grams)/100;
+      if (out.calories_kcal == null && sel.per100g?.calories_kcal != null) out.calories_kcal = (sel.per100g.calories_kcal * grams)/100;
+      if (out.sodium_mg == null && sel.per100g?.sodium_mg != null) out.sodium_mg = (sel.per100g.sodium_mg * grams)/100;
+    }
+
+    return out;
+  }
+
+  async function usdaSearchFoods(query, dataTypesCsv){
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("No API key saved.");
+
+    const q = String(query||"").trim();
+    if (!q) return [];
+
+    const dt = String(dataTypesCsv||"").trim();
+    const cacheK = `${q.toLowerCase()}::${dt}`;
+    const cached = cacheGet(keys.searchCache, cacheK);
+    if (cached) return cached;
+
+    const url = new URL(`${API_BASE}/foods/search`);
+    url.searchParams.set("api_key", apiKey);
+
+    const dataTypes = dt.split(",").map(s=>s.trim()).filter(Boolean);
+    const body = {
+      query: q,
+      pageSize: 10,
+      pageNumber: 1,
+      dataType: dataTypes.length ? dataTypes : undefined,
+      sortBy: "score",
+      sortOrder: "desc"
+    };
+
+    const doFetch = async() => {
+      const res = await fetch(url.toString(), {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error(`Search failed (${res.status})`);
+      const json = await res.json();
+      const foods = Array.isArray(json.foods) ? json.foods : [];
+      const items = foods.map(f => ({
+        fdcId: f.fdcId,
+        description: f.description || f.lowercaseDescription || `FDC ${f.fdcId}`,
+        dataType: f.dataType || "",
+        brandOwner: f.brandOwner || f.brandName || "",
+        servingSize: f.servingSize ?? null,
+        servingSizeUnit: f.servingSizeUnit ?? null
+      }));
+      cacheSet(keys.searchCache, cacheK, items);
+      return items;
+    };
+
+    return enqueue(doFetch);
+  }
+
+  async function usdaFoodDetails(fdcId){
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("No API key saved.");
+
+    const id = String(fdcId);
+    const cached = cacheGet(keys.detailsCache, id);
+    if (cached) return cached;
+
+    const url = new URL(`${API_BASE}/food/${encodeURIComponent(id)}`);
+    url.searchParams.set("api_key", apiKey);
+
+    const doFetch = async() => {
+      const res = await fetch(url.toString(), { method:"GET" });
+      if (!res.ok) throw new Error(`Details failed (${res.status})`);
+      const json = await res.json();
+      cacheSet(keys.detailsCache, id, json);
+      return json;
+    };
+
+    return enqueue(doFetch);
+  }
+
+  // UI state
+  let selectedFood = null;
+  let caps = loadCaps();
+  let diet = loadDiet();
+  let isoDate = todayISO();
+  let day = loadDay(isoDate);
+
+  // Diet apply on change
+  function applyDiet(v){
+    if (v === "custom"){
+      saveDiet("custom");
+      diet = "custom";
+      el("lookupStatus").textContent = "Diet set to Custom (no automatic changes).";
+      renderAll();
+      return;
+    }
+    const preset = DIET_PRESETS[v];
+    if (!preset) return;
+
+    caps = { ...caps, ...preset };
+    saveCaps(caps);
+    saveDiet(v);
+    diet = v;
+
+    el("mealCap").value = caps.mealCap;
+    el("snackCap").value = caps.snackCap;
+    el("mealsPerDay").value = caps.mealsPerDay;
+    el("snacksPerDay").value = caps.snacksPerDay;
+    el("sodiumTarget").value = caps.sodiumTarget;
+    el("calTarget").value = caps.calTarget;
+
+    el("lookupStatus").textContent = "Diet applied.";
+    renderAll();
+  }
+
+  function capsForSlot(slotKey){
+    const def = SLOT_DEFS.find(s => s.key === slotKey);
+    return def?.type === "meal" ? caps.mealCap : caps.snackCap;
+  }
+
+  function dailyCarbCap(){
+    return (caps.mealCap * caps.mealsPerDay) + (caps.snackCap * caps.snacksPerDay);
+  }
+
+  function computeTotals(){
+    const totalsBySlot = Object.fromEntries(SLOT_DEFS.map(s => [s.key, {carbs:0,cals:0,sod:0}]));
+    let carbs=0, cals=0, sod=0;
+
+    for (const e of day.entries){
+      const c = Number(e.carbs_g)||0;
+      const k = Number(e.calories_kcal)||0;
+      const s = Number(e.sodium_mg)||0;
+      totalsBySlot[e.slot].carbs += c;
+      totalsBySlot[e.slot].cals += k;
+      totalsBySlot[e.slot].sod += s;
+      carbs += c; cals += k; sod += s;
+    }
+
+    const carbCap = dailyCarbCap();
+    const anySlotOver = SLOT_DEFS.some(s => (totalsBySlot[s.key].carbs || 0) > capsForSlot(s.key) + 1e-6);
+    const dailyOver = carbs - carbCap;
+
+    return { totalsBySlot, carbs, cals, sod, carbCap, anySlotOver, dailyOver };
+  }
+
+  function setStatusPill(t){
+    const pill = el("statusPill");
+    pill.textContent = "On track";
+    pill.style.color = "#9be28f";
+    pill.style.borderColor = "#1f6a2a";
+    pill.style.background = "#102113";
+
+    if (t.anySlotOver || t.dailyOver > 1e-6){
+      pill.textContent = "Over cap";
+      pill.style.color = "#ff8f8f";
+      pill.style.borderColor = "#6a1f1f";
+      pill.style.background = "#3a1515";
+      return;
+    }
+    if (t.carbs > t.carbCap * 0.8){
+      pill.textContent = "Close to cap";
+      pill.style.color = "#ffd27d";
+      pill.style.borderColor = "#6a4d1f";
+      pill.style.background = "#2b2212";
+    }
+  }
+
+  function selectedHasAnyData(sel){
+    if (!sel) return false;
+    const p100 = sel.per100g || {};
+    const ps = sel.perServing || {};
+    return (p100.carbs_g != null || p100.calories_kcal != null || p100.sodium_mg != null ||
+            ps.carbs_g != null || ps.calories_kcal != null || ps.sodium_mg != null);
+  }
+
+  // Selected rendering + autofill
+  function renderSelectedHint(){
+    const hint = el("selectedHint");
+    const noDataBtn = el("noDataHelpBtn");
+
+    if (!selectedFood){
+      hint.textContent = "Nothing selected";
+      noDataBtn.style.display = "none";
+      return;
+    }
+
+    const sG = (selectedFood.servingSizeG != null) ? `${round1(selectedFood.servingSizeG)}g per ${selectedFood.servingLabel || "serving"}` : "serving grams unknown";
+    const c100 = (selectedFood.per100g?.carbs_g != null) ? `${round1(selectedFood.per100g.carbs_g)}g carbs/100g` : "no carbs/100g";
+    const cserv = (selectedFood.perServing?.carbs_g != null) ? `${round1(selectedFood.perServing.carbs_g)}g carbs/serv` : "no carbs/serv";
+
+    hint.textContent = `${selectedFood.dataType}${selectedFood.brandOwner ? " • " + selectedFood.brandOwner : ""} • ${c100} • ${cserv} • ${sG}`;
+
+    // Show fallback button if carbs missing (common pain point)
+    const hasCarb = (selectedFood.perServing?.carbs_g != null) || (selectedFood.per100g?.carbs_g != null);
+    noDataBtn.style.display = hasCarb ? "none" : "inline-block";
+  }
+
+  function setSelectedFood(sel){
+    selectedFood = sel;
+
+    // Default to servings if it looks viable, otherwise grams
+    const servingsOk = (sel?.perServing?.carbs_g != null) || (sel?.servingSizeG != null && sel?.per100g?.carbs_g != null);
+    el("qtyUnit").value = servingsOk ? "serving" : "grams";
+    el("qtyValue").value = servingsOk ? 1 : 100;
+
+    el("foodInput").value = sel ? sel.description : el("foodInput").value;
+    renderSelectedHint();
+    recalcIntoInputs();
+    updateFavSelectedButton();
+  }
+
+  function recalcIntoInputs(){
+    if (!selectedFood){
+      el("liveCarbsBadge").textContent = "Carbs: —";
+      el("liveCalsBadge").textContent = "Calories: —";
+      el("liveSodiumBadge").textContent = "Sodium: —";
+      return;
+    }
+
+    const qty = el("qtyValue").value;
+    const unit = el("qtyUnit").value;
+    const out = computeForQty(selectedFood, qty, unit);
+
+    const carbs = out && out.carbs_g != null ? round1(out.carbs_g) : null;
+    const cals  = out && out.calories_kcal != null ? Math.round(out.calories_kcal) : null;
+    const sod   = out && out.sodium_mg != null ? Math.round(out.sodium_mg) : null;
+
+    el("liveCarbsBadge").textContent = `Carbs: ${carbs==null ? "—" : carbs + "g"}`;
+    el("liveCalsBadge").textContent = `Calories: ${cals==null ? "—" : cals + " kcal"}`;
+    el("liveSodiumBadge").textContent = `Sodium: ${sod==null ? "—" : sod + " mg"}`;
+
+    // auto-fill log inputs
+    el("carbInput").value = carbs==null ? "" : carbs;
+    el("calInput").value  = cals==null ? "" : cals;
+    el("sodInput").value  = sod==null ? "" : sod;
+  }
+
+  el("qtyValue").addEventListener("input", recalcIntoInputs);
+  el("qtyUnit").addEventListener("change", recalcIntoInputs);
+
+  // Favorites
+  function isFavorite(id){
+    return loadFavorites().some(f => String(f.fdcId) === String(id));
+  }
+
+  function updateFavSelectedButton(){
+    const b = el("favSelectedBtn");
+    if (!selectedFood){
+      b.disabled = true;
+      b.textContent = "Add to favorites";
+      return;
+    }
+    b.disabled = false;
+    b.textContent = isFavorite(selectedFood.fdcId) ? "In favorites" : "Add to favorites";
+  }
+
+  function renderFavorites(){
+    const wrap = el("favoritesList");
+    const favs = loadFavorites();
+    wrap.innerHTML = "";
+
+    if (!favs.length){
+      wrap.innerHTML = `<div class="tiny">No favorites yet.</div>`;
+      return;
+    }
+
+    for (const f of favs){
+      const div = document.createElement("div");
+      div.className = "result";
+
+      const left = document.createElement("div");
+      left.style.minWidth = "0";
+      left.innerHTML = `
+        <div class="name" title="${escapeHtml(f.description)}">${escapeHtml(f.description)}</div>
+        <div class="sub">${escapeHtml(f.dataType || "")}${f.brandOwner ? " • " + escapeHtml(f.brandOwner) : ""}</div>
+      `;
+
+      const right = document.createElement("div");
+      right.className = "right";
+
+      const badge = document.createElement("span");
+      badge.className = "badge";
+      const c = (f.perServing?.carbs_g != null) ? `${round1(f.perServing.carbs_g)}g/serv` : "—/serv";
+      const k = (f.perServing?.calories_kcal != null) ? `${Math.round(f.perServing.calories_kcal)} kcal/serv` : "— kcal/serv";
+      const s = (f.perServing?.sodium_mg != null) ? `${Math.round(f.perServing.sodium_mg)}mg Na/serv` : "— Na/serv";
+      badge.textContent = `${c} • ${k} • ${s}`;
+
+      const use = document.createElement("button");
+      use.className = "primary small";
+      use.textContent = "Use";
+      use.onclick = () => setSelectedFood(f);
+
+      const rm = document.createElement("button");
+      rm.className = "danger small";
+      rm.textContent = "Remove";
+      rm.onclick = () => {
+        const next = loadFavorites().filter(x => String(x.fdcId) !== String(f.fdcId));
+        saveFavorites(next);
+        renderFavorites();
+        updateFavSelectedButton();
+      };
+
+      right.appendChild(badge);
+      right.appendChild(use);
+      right.appendChild(rm);
+
+      div.appendChild(left);
+      div.appendChild(right);
+      wrap.appendChild(div);
+    }
+  }
+
+  el("favSelectedBtn").addEventListener("click", () => {
+    if (!selectedFood) return;
+    if (!selectedHasAnyData(selectedFood)){
+      alert("This item has no usable data. Use a Helper item or paste the label first.");
+      return;
+    }
+    if (isFavorite(selectedFood.fdcId)) return;
+
+    const favs = loadFavorites();
+    favs.unshift({ ...selectedFood, pinnedAt: Date.now() });
+    saveFavorites(favs.slice(0, 80));
+    renderFavorites();
+    updateFavSelectedButton();
+    el("lookupStatus").textContent = "Saved to favorites.";
+  });
+
+  el("clearFavBtn").addEventListener("click", () => {
+    if (!confirm("Clear ALL favorites?")) return;
+    saveFavorites([]);
+    renderFavorites();
+    updateFavSelectedButton();
+  });
+
+  // Helpers
+  function helperToSelected(h){
+    return {
+      fdcId: h.id,
+      description: h.name,
+      dataType: "Helper",
+      brandOwner: "",
+      servingSize: null,
+      servingUnit: null,
+      servingSizeG: null,
+      servingLabel: "serving",
+      per100g: { carbs_g:null, calories_kcal:null, sodium_mg:null },
+      perServing: { carbs_g: h.carbs_g, calories_kcal: h.calories_kcal, sodium_mg: h.sodium_mg }
+    };
+  }
+
+  function renderHelpers(){
+    const wrap = el("helpersList");
+    const hs = loadHelpers();
+    wrap.innerHTML = "";
+
+    if (!hs.length){
+      wrap.innerHTML = `<div class="tiny">No helper items yet.</div>`;
+      return;
+    }
+
+    for (const h of hs){
+      const div = document.createElement("div");
+      div.className = "result";
+
+      const left = document.createElement("div");
+      left.style.minWidth = "0";
+      left.innerHTML = `
+        <div class="name" title="${escapeHtml(h.name)}">${escapeHtml(h.name)}</div>
+        <div class="sub">Manual per-serving</div>
+      `;
+
+      const right = document.createElement("div");
+      right.className = "right";
+
+      const badge = document.createElement("span");
+      badge.className = "badge";
+      const c = (h.carbs_g != null) ? `${round1(h.carbs_g)}g carbs` : "— carbs";
+      const k = (h.calories_kcal != null) ? `${Math.round(h.calories_kcal)} kcal` : "— kcal";
+      const s = (h.sodium_mg != null) ? `${Math.round(h.sodium_mg)}mg Na` : "— Na";
+      badge.textContent = `${c} • ${k} • ${s}`;
+
+      const use = document.createElement("button");
+      use.className = "primary small";
+      use.textContent = "Use";
+      use.onclick = () => setSelectedFood(helperToSelected(h));
+
+      const fav = document.createElement("button");
+      fav.className = "ghost small";
+      fav.textContent = "Fav";
+      fav.onclick = () => {
+        const sel = helperToSelected(h);
+        if (isFavorite(sel.fdcId)) return;
+        const favs = loadFavorites();
+        favs.unshift({ ...sel, pinnedAt: Date.now() });
+        saveFavorites(favs.slice(0, 80));
+        renderFavorites();
+        el("lookupStatus").textContent = "Helper saved to favorites.";
+      };
+
+      const rm = document.createElement("button");
+      rm.className = "danger small";
+      rm.textContent = "Remove";
+      rm.onclick = () => {
+        const next = loadHelpers().filter(x => x.id !== h.id);
+        saveHelpers(next);
+        renderHelpers();
+      };
+
+      right.appendChild(badge);
+      right.appendChild(use);
+      right.appendChild(fav);
+      right.appendChild(rm);
+
+      div.appendChild(left);
+      div.appendChild(right);
+      wrap.appendChild(div);
+    }
+  }
+
+  el("addHelperBtn").addEventListener("click", () => {
+    const name = el("helperName").value.trim();
+    if (!name) { alert("Helper name required."); return; }
+
+    const carbs = safeNumber(el("helperCarbs").value);
+    if (carbs == null) { alert("Carbs per serving is required for a helper."); return; }
+
+    const cals = safeNumber(el("helperCals").value);
+    const sod = safeNumber(el("helperSod").value);
+
+    const hs = loadHelpers();
+    hs.unshift({
+      id: "helper:" + uid(),
+      name,
+      carbs_g: carbs,
+      calories_kcal: cals,
+      sodium_mg: sod,
+      createdAt: Date.now()
+    });
+    saveHelpers(hs.slice(0, 120));
+
+    el("helperName").value = "";
+    el("helperCarbs").value = "";
+    el("helperCals").value = "";
+    el("helperSod").value = "";
+
+    renderHelpers();
+    el("lookupStatus").textContent = "Helper item saved.";
+  });
+
+  // Lookup
+  let debounceTimer = null;
+  let searchSeq = 0;
+
+  function renderLookupResults(items){
+    const wrap = el("lookupResults");
+    wrap.innerHTML = "";
+
+    if (!items.length){
+      wrap.innerHTML = `<div class="tiny">No results yet.</div>`;
+      return;
+    }
+
+    for (const item of items){
+      const div = document.createElement("div");
+      div.className = "result";
+
+      const left = document.createElement("div");
+      left.style.minWidth = "0";
+      left.innerHTML = `
+        <div class="name" title="${escapeHtml(item.description)}">${escapeHtml(item.description)}</div>
+        <div class="sub">${escapeHtml(item.dataType || "")}${item.brandOwner ? " • " + escapeHtml(item.brandOwner) : ""} • FDC: ${item.fdcId}</div>
+      `;
+
+      const right = document.createElement("div");
+      right.className = "right";
+
+      const badge = document.createElement("span");
+      badge.className = "badge";
+      badge.textContent = "Use loads nutrients";
+
+      const use = document.createElement("button");
+      use.className = "primary small";
+      use.textContent = "Use";
+      use.onclick = async() => {
+        el("lookupStatus").textContent = "Loading nutrients…";
+        try{
+          const details = await usdaFoodDetails(item.fdcId);
+          const sel = normalizeSelected(item, details);
+          setSelectedFood(sel);
+
+          if (!selectedHasAnyData(sel)){
+            el("lookupStatus").textContent = "Loaded, but USDA has no usable nutrients for this item. Use Helper or Paste label.";
+          } else {
+            el("lookupStatus").textContent = "Selected. Adjust servings/grams, then Add.";
+          }
+        }catch(e){
+          el("lookupStatus").textContent = `Couldn’t load: ${e.message}`;
+        }
+      };
+
+      const fav = document.createElement("button");
+      fav.className = "ghost small";
+      fav.textContent = "Fav";
+      fav.onclick = async() => {
+        if (isFavorite(item.fdcId)) return;
+        el("lookupStatus").textContent = "Saving favorite…";
+        try{
+          const details = await usdaFoodDetails(item.fdcId);
+          const sel = normalizeSelected(item, details);
+          if (!selectedHasAnyData(sel)){
+            alert("USDA returned no usable nutrients for this item. Use Helper/Paste label, then favorite.");
+            el("lookupStatus").textContent = "Favorite not saved (no nutrients).";
+            return;
+          }
+          const favs = loadFavorites();
+          favs.unshift({ ...sel, pinnedAt: Date.now() });
+          saveFavorites(favs.slice(0, 80));
+          renderFavorites();
+          el("lookupStatus").textContent = "Saved to favorites.";
+        }catch(e){
+          el("lookupStatus").textContent = `Favorite failed: ${e.message}`;
+        }
+      };
+
+      right.appendChild(badge);
+      right.appendChild(use);
+      right.appendChild(fav);
+
+      div.appendChild(left);
+      div.appendChild(right);
+      wrap.appendChild(div);
+    }
+  }
+
+  async function runLookup(fromTyping=false){
+    const apiKey = getApiKey();
+    if (!apiKey){
+      el("lookupStatus").textContent = "Paste & save your USDA API key first.";
+      return;
+    }
+
+    const q = el("lookupInput").value.trim();
+    const dt = el("dataTypeSelect").value;
+    if (!q){
+      el("lookupStatus").textContent = "Type a food to search.";
+      renderLookupResults([]);
+      return;
+    }
+
+    const mySeq = ++searchSeq;
+
+    const cacheK = `${q.toLowerCase()}::${dt}`;
+    const cached = cacheGet(keys.searchCache, cacheK);
+    if (cached && mySeq === searchSeq){
+      el("lookupStatus").textContent = fromTyping ? "Showing cached suggestions…" : "Showing cached results…";
+      renderLookupResults(cached);
+    }
+
+    el("lookupStatus").textContent = fromTyping ? "Updating (rate-limited)…" : "Searching…";
+    try{
+      const items = await usdaSearchFoods(q, dt);
+      if (mySeq !== searchSeq) return;
+      renderLookupResults(items);
+      el("lookupStatus").textContent = `Results: ${items.length} (tap Use)`;
+    }catch(e){
+      if (mySeq !== searchSeq) return;
+      el("lookupStatus").textContent = `Lookup failed: ${e.message}`;
+    }
+  }
+
+  function scheduleLookup(){
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(()=>runLookup(true), DEBOUNCE_MS);
+  }
+
+  el("lookupBtn").addEventListener("click", ()=>runLookup(false));
+  el("lookupInput").addEventListener("input", scheduleLookup);
+  el("lookupInput").addEventListener("keydown", (e)=>{ if (e.key==="Enter") runLookup(false); });
+
+  // Quick lookup from Food field
+  async function quickLookupFromFoodField(){
+    const apiKey = getApiKey();
+    if (!apiKey){
+      alert("Save your USDA API key first.");
+      return;
+    }
+    const q = el("foodInput").value.trim();
+    if (!q) return;
+
+    const dt = el("dataTypeSelect").value;
+    el("lookupStatus").textContent = "Quick lookup…";
+    try{
+      const items = await usdaSearchFoods(q, dt);
+      if (!items.length){
+        el("lookupStatus").textContent = "No matches. Use Helper items or Paste label.";
+        return;
+      }
+      const top = items[0];
+      const details = await usdaFoodDetails(top.fdcId);
+      const sel = normalizeSelected(top, details);
+      setSelectedFood(sel);
+      el("foodInput").value = q;
+      el("lookupStatus").textContent = `Selected top match: ${sel.description}`;
+    }catch(e){
+      el("lookupStatus").textContent = `Quick lookup failed: ${e.message}`;
+    }
+  }
+
+  el("foodInput").addEventListener("keydown", (e)=>{
+    if (e.key==="Enter"){
+      e.preventDefault();
+      quickLookupFromFoodField();
+    }
+  });
+
+  // Modal (label paste + fallback)
+  let modalMode = "label"; // "label" | "helperPick"
+  function openModal(mode){
+    modalMode = mode;
+    el("labelText").value = "";
+    el("labelParseStatus").textContent = "";
+    el("modalRightHint").textContent = "";
+
+    if (mode === "label"){
+      el("modalTitle").textContent = "Paste nutrition label text";
+      el("modalSubtitle").textContent = "We’ll extract carbs, calories, sodium";
+      el("labelText").placeholder = "Example: Calories 320  Total Carbohydrate 26g  Sodium 870mg";
+      el("applyModalBtn").textContent = "Apply";
+      el("modalRightHint").textContent = "Tip: include serving size if you have it.";
+    } else {
+      el("modalTitle").textContent = "No USDA data — quick fallback";
+      el("modalSubtitle").textContent = "Paste a label OR type per-serving numbers (example: carbs 25g)";
+      el("labelText").placeholder = "Paste label text OR type something like: carbs 25g calories 480 sodium 900mg";
+      el("applyModalBtn").textContent = "Apply";
+      el("modalRightHint").textContent = "Also: add a Helper item for reuse.";
+    }
+
+    el("modalOverlay").style.display = "flex";
+  }
+  function closeModal(){
+    el("modalOverlay").style.display = "none";
+  }
+
+  el("labelParseBtn").addEventListener("click", ()=>openModal("label"));
+  el("cancelModalBtn").addEventListener("click", closeModal);
+  el("noDataHelpBtn").addEventListener("click", ()=>openModal("helperPick"));
+
+  function extractNumber(pattern, text){
+    const m = text.match(pattern);
+    if (!m) return null;
+    const v = Number(String(m[1]).replace(",","").trim());
+    return Number.isFinite(v) ? v : null;
+  }
+
+  function parseLabel(text){
+    const t = String(text||"").toLowerCase();
+
+    const calories =
+      extractNumber(/calories\s*[:\-]?\s*(\d+(\.\d+)?)/i, t) ??
+      extractNumber(/energy\s*[:\-]?\s*(\d+(\.\d+)?)/i, t);
+
+    const carbs =
+      extractNumber(/total\s*carbohydrate\s*[:\-]?\s*(\d+(\.\d+)?)\s*g/i, t) ??
+      extractNumber(/carbohydrate\s*[:\-]?\s*(\d+(\.\d+)?)\s*g/i, t) ??
+      extractNumber(/\bcarbs?\b\s*[:\-]?\s*(\d+(\.\d+)?)\s*g/i, t);
+
+    const sodium =
+      extractNumber(/sodium\s*[:\-]?\s*(\d+(\.\d+)?)\s*mg/i, t) ??
+      extractNumber(/\bna\b\s*[:\-]?\s*(\d+(\.\d+)?)\s*mg/i, t);
+
+    return { calories_kcal: calories, carbs_g: carbs, sodium_mg: sodium };
+  }
+
+  el("applyModalBtn").addEventListener("click", ()=>{
+    const parsed = parseLabel(el("labelText").value);
+    const found = (parsed.carbs_g != null) || (parsed.calories_kcal != null) || (parsed.sodium_mg != null);
+
+    if (!found){
+      el("labelParseStatus").textContent = "Couldn’t find carbs/calories/sodium. Paste more complete text.";
+      return;
+    }
+
+    // If nothing selected, create a manual pseudo-item from Food field
+    if (!selectedFood){
+      selectedFood = {
+        fdcId: "manual:" + uid(),
+        description: el("foodInput").value.trim() || "Manual item",
+        dataType: "Manual",
+        brandOwner: "",
+        servingSize: null,
+        servingUnit: null,
+        servingSizeG: null,
+        servingLabel: "serving",
+        per100g: { carbs_g:null, calories_kcal:null, sodium_mg:null },
+        perServing: { carbs_g: parsed.carbs_g, calories_kcal: parsed.calories_kcal, sodium_mg: parsed.sodium_mg }
+      };
+      el("qtyUnit").value = "serving";
+      el("qtyValue").value = 1;
+    } else {
+      selectedFood.perServing = selectedFood.perServing || { carbs_g:null, calories_kcal:null, sodium_mg:null };
+      if (parsed.carbs_g != null) selectedFood.perServing.carbs_g = parsed.carbs_g;
+      if (parsed.calories_kcal != null) selectedFood.perServing.calories_kcal = parsed.calories_kcal;
+      if (parsed.sodium_mg != null) selectedFood.perServing.sodium_mg = parsed.sodium_mg;
+    }
+
+    renderSelectedHint();
+    recalcIntoInputs();
+    updateFavSelectedButton();
+    closeModal();
+    el("lookupStatus").textContent = "Applied label values (per serving).";
+  });
+
+  // Logging
+  function addEntry(){
+    const food = el("foodInput").value.trim();
+    if (!food){ alert("Add a food name."); return; }
+
+    const carbs = safeNumber(el("carbInput").value);
+    const cals  = safeNumber(el("calInput").value);
+    const sod   = safeNumber(el("sodInput").value);
+
+    const safe = (v) => (v != null && v >= 0) ? v : 0;
+
+    day.entries.push({
+      id: uid(),
+      ts: Date.now(),
+      slot: el("slotSelect").value,
+      food,
+      carbs_g: round1(safe(carbs)),
+      calories_kcal: Math.round(safe(cals)),
+      sodium_mg: Math.round(safe(sod))
+    });
+
+    saveDay(isoDate, day);
+
+    el("foodInput").value = "";
+    el("carbInput").value = "";
+    el("calInput").value  = "";
+    el("sodInput").value  = "";
+
+    selectedFood = null;
+    renderSelectedHint();
+    recalcIntoInputs();
+    updateFavSelectedButton();
+
+    renderAll();
+  }
+
+  el("addBtn").addEventListener("click", addEntry);
+
+  // Render day slots
+  function renderAll(){
+    // top pills
+    el("mealCapText").textContent = `${caps.mealCap}g`;
+    el("snackCapText").textContent = `${caps.snackCap}g`;
+    el("mealsPerDayText").textContent = String(caps.mealsPerDay);
+    el("snacksPerDayText").textContent = String(caps.snacksPerDay);
+    el("dailyCarbCapText").textContent = `${round1(dailyCarbCap())}g`;
+
+    const totals = computeTotals();
+
+    // right totals
+    el("dailyCarbs").textContent = round1(totals.carbs);
+    el("dailyCals").textContent = Math.round(totals.cals);
+    el("dailySod").textContent  = Math.round(totals.sod);
+
+    const carbCap = totals.carbCap;
+    const remaining = carbCap - totals.carbs;
+    el("carbRemain").textContent = remaining >= 0 ? `Remaining: ${round1(remaining)}g` : `Over by ${round1(Math.abs(remaining))}g`;
+
+    const pctCarb = carbCap > 0 ? Math.min(100, (totals.carbs / carbCap) * 100) : 0;
+    el("carbBar").style.width = `${pctCarb}%`;
+
+    el("calTargetLine").textContent = caps.calTarget > 0 ? `Target: ${Math.round(caps.calTarget)} kcal` : "Target: —";
+    el("sodTargetLine").textContent = caps.sodiumTarget > 0 ? `Target: ${Math.round(caps.sodiumTarget)} mg` : "Target: —";
+
+    const pctCal = caps.calTarget > 0 ? Math.min(100, (totals.cals / caps.calTarget) * 100) : 0;
+    el("calBar").style.width = `${pctCal}%`;
+
+    const pctSod = caps.sodiumTarget > 0 ? Math.min(100, (totals.sod / caps.sodiumTarget) * 100) : 0;
+    el("sodBar").style.width = `${pctSod}%`;
+
+    // bottom-left totals
+    el("blCarbs").textContent = round1(totals.carbs);
+    el("blCals").textContent = Math.round(totals.cals);
+    el("blSod").textContent  = Math.round(totals.sod);
+    el("blCapsLine").textContent =
+      `Carb cap: ${round1(totals.carbCap)}g • Sodium target: ${caps.sodiumTarget>0 ? Math.round(caps.sodiumTarget)+" mg" : "—"} • Cal target: ${caps.calTarget>0 ? Math.round(caps.calTarget)+" kcal" : "—"}`;
+
+    setStatusPill(totals);
+
+    // slots
+    const container = el("slotsContainer");
+    container.innerHTML = "";
+
+    for (const slot of SLOT_DEFS){
+      const slotCap = capsForSlot(slot.key);
+      const slotEntries = day.entries.filter(e => e.slot === slot.key);
+
+      const slotCarbs = slotEntries.reduce((a,e)=>a+(Number(e.carbs_g)||0), 0);
+      const over = slotCarbs - slotCap;
+      const cls = over > 1e-6 ? "bad" : (slotCarbs > slotCap * 0.8 ? "warn" : "ok");
+
+      const slotDiv = document.createElement("div");
+      slotDiv.className = "slot";
+
+      const head = document.createElement("div");
+      head.className = "slotHead";
+      head.innerHTML = `
+        <div>
+          <div class="slotName">${slot.key}</div>
+          <div class="tiny">Carb cap: ${slotCap}g</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="${cls}" style="font-weight:700;">${round1(slotCarbs)}g carbs</div>
+          <div class="tiny">${over > 1e-6 ? `Over by ${round1(over)}g` : `Remaining ${round1(slotCap - slotCarbs)}g`}</div>
+        </div>
+      `;
+
+      const entriesWrap = document.createElement("div");
+      entriesWrap.className = "entries";
+
+      if (!slotEntries.length){
+        entriesWrap.innerHTML = `<div class="tiny">No entries yet.</div>`;
+      } else {
+        for (const entry of slotEntries){
+          const row = document.createElement("div");
+          row.className = "entry";
+
+          const time = new Date(entry.ts).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+          row.innerHTML = `
+            <div class="left">
+              <div class="food" title="${escapeHtml(entry.food)}">${escapeHtml(entry.food)}</div>
+              <div class="meta">${time} • ${round1(entry.carbs_g)}g carbs • ${Math.round(entry.calories_kcal)} kcal • ${Math.round(entry.sodium_mg)} mg Na</div>
+            </div>
+          `;
+
+          const r = document.createElement("div");
+          r.className = "right";
+
+          const del = document.createElement("button");
+          del.className = "danger small";
+          del.textContent = "Remove";
+          del.onclick = () => {
+            day.entries = day.entries.filter(e => e.id !== entry.id);
+            saveDay(isoDate, day);
+            renderAll();
+          };
+
+          r.appendChild(del);
+          row.appendChild(r);
+          entriesWrap.appendChild(row);
+        }
+      }
+
+      slotDiv.appendChild(head);
+      slotDiv.appendChild(entriesWrap);
+      container.appendChild(slotDiv);
+    }
+  }
+
+  // Date / clear day (top)
+  el("dateInputTop").value = isoDate;
+  el("dateInputTop").addEventListener("change", () => {
+    isoDate = el("dateInputTop").value || todayISO();
+    day = loadDay(isoDate);
+    renderAll();
+  });
+
+  el("clearDayBtn").addEventListener("click", () => {
+    if (!confirm(`Clear all entries for ${isoDate}?`)) return;
+    day = { entries: [] };
+    saveDay(isoDate, day);
+    renderAll();
+  });
+
+  // Slot dropdown init
+  const slotSelect = el("slotSelect");
+  SLOT_DEFS.forEach(s => {
+    const opt = document.createElement("option");
+    opt.value = s.key;
+    opt.textContent = s.key;
+    slotSelect.appendChild(opt);
+  });
+  slotSelect.value = "Breakfast";
+
+  // Caps save
+  el("saveCapsBtn").addEventListener("click", () => {
+    caps = {
+      mealCap: Number(el("mealCap").value) || 0,
+      snackCap: Number(el("snackCap").value) || 0,
+      mealsPerDay: Math.max(0, Math.floor(Number(el("mealsPerDay").value) || 0)),
+      snacksPerDay: Math.max(0, Math.floor(Number(el("snacksPerDay").value) || 0)),
+      sodiumTarget: Math.max(0, Math.floor(Number(el("sodiumTarget").value) || 0)),
+      calTarget: Math.max(0, Math.floor(Number(el("calTarget").value) || 0))
+    };
+    saveCaps(caps);
+    el("lookupStatus").textContent = "Caps saved.";
+    renderAll();
+  });
+
+  // Diet select
+  el("dietSelect").addEventListener("change", () => {
+    const v = el("dietSelect").value;
+    applyDiet(v);
+  });
+
+  // API key init
+  el("apiKeyInput").value = getApiKey();
+  el("saveKeyBtn").addEventListener("click", () => {
+    const k = el("apiKeyInput").value.trim();
+    if (!k){ alert("Paste your USDA API key first."); return; }
+    setApiKey(k);
+    el("lookupStatus").textContent = "API key saved.";
+  });
+  el("clearKeyBtn").addEventListener("click", () => {
+    clearApiKey();
+    el("apiKeyInput").value = "";
+    el("lookupStatus").textContent = "API key cleared.";
+  });
+
+  // Init diet + caps UI
+  el("dietSelect").value = diet;
+  el("mealCap").value = caps.mealCap;
+  el("snackCap").value = caps.snackCap;
+  el("mealsPerDay").value = caps.mealsPerDay;
+  el("snacksPerDay").value = caps.snacksPerDay;
+  el("sodiumTarget").value = caps.sodiumTarget;
+  el("calTarget").value = caps.calTarget;
+
+  // Start
+  el("lookupStatus").textContent = "Paste your USDA API key, then search. Use Enter in Food for quick lookup.";
+  renderFavorites();
+  renderHelpers();
+  updateFavSelectedButton();
+  renderAll();
+})();
+</script>
+</body>
+</html>
